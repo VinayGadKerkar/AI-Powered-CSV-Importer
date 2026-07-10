@@ -4,6 +4,7 @@ import { useState } from "react";
 import ImportModal from "./ImportModal";
 import { ImportResult } from "./types";
 import ResultsTable from "./ResultsTable";
+import DarkModeToggle from "./DarkModeToggle";
 
 export default function LeadSourcesPage() {
   const [showModal, setShowModal] = useState(false);
@@ -28,14 +29,7 @@ export default function LeadSourcesPage() {
           </div>
           <div className="flex items-center gap-3">
             {/* Dark mode toggle */}
-            <button
-              onClick={() => setDarkMode(!darkMode)}
-              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-              aria-label="Toggle dark mode"
-              title="Toggle dark mode"
-            >
-              {darkMode ? "☀️" : "🌙"}
-            </button>
+            <DarkModeToggle dark={darkMode} onToggle={() => setDarkMode(!darkMode)} />
             <button
               onClick={() => setShowModal(true)}
               className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg transition-colors"
