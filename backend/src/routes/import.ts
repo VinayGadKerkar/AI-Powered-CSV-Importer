@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import multer from "multer";
 import { parseCSV } from "../utils/csvParser";
+import { extractCRMRecords } from "../services/aiExtractor";
 
 const router = Router();
 
@@ -46,8 +47,8 @@ const uploadMiddleware = (req: Request, res: Response, next: NextFunction) => {
 /**
  * POST /api/import
  * Accepts a multipart CSV upload (field name: "file").
- * Parses headers dynamically — no fixed column assumptions.
- * Returns raw parsed rows as JSON (AI extraction added in Commit 4).
+ * Parses headers dynamically, then runs Mistral AI extraction.
+ * Returns: { imported, skipped, total_imported, total_skipped }
  */
 router.post("/import", uploadMiddleware, async (req: Request, res: Response) => {
   // Validate file presence
@@ -58,7 +59,7 @@ router.post("/import", uploadMiddleware, async (req: Request, res: Response) => 
     });
   }
 
-  // Validate extension again (belt-and-suspenders)
+  // Validate extension (belt-and-suspenders)
   if (!req.file.originalname.toLowerCase().endsWith(".csv")) {
     return res.status(400).json({
       error: "Invalid file type.",
@@ -66,7 +67,7 @@ router.post("/import", uploadMiddleware, async (req: Request, res: Response) => 
     });
   }
 
-  // Validate content is non-empty
+  // Validate file is non-empty
   if (req.file.size === 0) {
     return res.status(400).json({
       error: "Empty file.",
@@ -75,6 +76,7 @@ router.post("/import", uploadMiddleware, async (req: Request, res: Response) => 
   }
 
   try {
+    // Step 1: Parse CSV dynamically — no fixed column assumptions
     const csvContent = req.file.buffer.toString("utf-8");
     const rows = await parseCSV(csvContent);
 
@@ -85,16 +87,17 @@ router.post("/import", uploadMiddleware, async (req: Request, res: Response) => 
       });
     }
 
-    // Commit 3: return raw parsed rows — AI extraction wired up in Commit 4
-    return res.status(200).json({
-      rows,
-      total: rows.length,
-      columns: Object.keys(rows[0] || {}),
-      message: `Successfully parsed ${rows.length} rows.`,
-    });
+    console.log(
+      `📂 Parsed CSV: ${rows.length} rows, columns: [${Object.keys(rows[0] || {}).join(", ")}]`
+    );
+
+    // Step 2: Run Mistral AI extraction
+    const result = await extractCRMRecords(rows);
+
+    return res.status(200).json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("CSV parse error:", message);
+    console.error("Import error:", message);
     return res.status(500).json({
       error: "Failed to process CSV.",
       message,
