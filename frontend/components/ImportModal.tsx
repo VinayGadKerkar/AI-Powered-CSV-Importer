@@ -94,10 +94,24 @@ export default function ImportModal({ onClose, onImportComplete }: Props) {
     if (!file) return;
     setStep("loading");
     setError(null);
-    setBatchProgress("Sending to AI...");
+    setBatchProgress("Sending file to server...");
 
     const formData = new FormData();
     formData.append("file", file);
+
+    // Estimate batch count for progress display
+    const estimatedBatches = Math.ceil(totalRows / 20);
+
+    // Show cycling batch progress while the single HTTP call is in-flight
+    let batchNum = 1;
+    const progressInterval = setInterval(() => {
+      if (batchNum <= estimatedBatches) {
+        setBatchProgress(`Processing batch ${batchNum} of ${estimatedBatches}...`);
+        batchNum++;
+      } else {
+        setBatchProgress("Finalising results...");
+      }
+    }, Math.max(1500, (estimatedBatches * 3000) / estimatedBatches));
 
     try {
       const backendUrl =
@@ -108,16 +122,17 @@ export default function ImportModal({ onClose, onImportComplete }: Props) {
         body: formData,
       });
 
+      clearInterval(progressInterval);
+
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(
-          errData.error || `Server error: ${res.status}`
-        );
+        throw new Error(errData.message || errData.error || `Server error: ${res.status}`);
       }
 
       const data: ImportResult = await res.json();
       onImportComplete(data);
     } catch (err) {
+      clearInterval(progressInterval);
       const message = err instanceof Error ? err.message : "Unknown error";
       setError(message);
       setStep("preview");
@@ -378,10 +393,32 @@ export default function ImportModal({ onClose, onImportComplete }: Props) {
               <p className="text-white font-semibold text-lg mb-1">
                 Processing with AI...
               </p>
-              <p className="text-gray-400 text-sm">
+              <p className="text-gray-400 text-sm min-h-[20px]">
                 {batchProgress || "Analyzing and mapping CSV columns to CRM fields"}
               </p>
             </div>
+            {/* Batch progress bar */}
+            {batchProgress.includes("batch") && (
+              <div className="w-full max-w-xs">
+                <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{
+                      backgroundColor: "#e94560",
+                      width: (() => {
+                        const match = batchProgress.match(/batch (\d+) of (\d+)/);
+                        if (match) {
+                          const pct = (parseInt(match[1]) / parseInt(match[2])) * 100;
+                          return `${Math.min(pct, 100)}%`;
+                        }
+                        return "90%";
+                      })(),
+                    }}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1.5">{batchProgress}</p>
+              </div>
+            )}
             <div className="flex items-center gap-1">
               {[0, 1, 2].map((i) => (
                 <div
