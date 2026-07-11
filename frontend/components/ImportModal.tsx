@@ -114,8 +114,9 @@ export default function ImportModal({ onClose, onImportComplete }: Props) {
     }, Math.max(1500, (estimatedBatches * 3000) / estimatedBatches));
 
     try {
-      const backendUrl =
-        process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000";
+      const backendUrl = (
+        process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000"
+      ).replace(/\/$/, ""); // strip trailing slash if any
 
       const res = await fetch(`${backendUrl}/api/import`, {
         method: "POST",
