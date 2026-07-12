@@ -2,29 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --sidebar-width: 240px;
-}
-
-* {
-  box-sizing: border-box;
-}
-
+/* ── Light mode (default) ── */
 body {
-  @apply bg-gray-950 text-gray-100;
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+/* ── Dark mode — toggled via <html class="dark"> ── */
+html.dark body {
+  background-color: #030712;
+  color: #f9fafb;
 }
 
 /* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  @apply bg-gray-900;
-}
-::-webkit-scrollbar-thumb {
-  @apply bg-gray-700 rounded;
-}
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-500;
-}
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #e5e7eb; }
+::-webkit-scrollbar-thumb { background: #9ca3af; border-radius: 3px; }
+html.dark ::-webkit-scrollbar-track { background: #111827; }
+html.dark ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
